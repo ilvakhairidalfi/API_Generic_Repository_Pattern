@@ -4,6 +4,7 @@ using API.Handler;
 using API.Models;
 using API.View_Model;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace API.Repository.Data
 {
@@ -96,7 +97,65 @@ namespace API.Repository.Data
         }
 
         // Change Password
+        public string ChangePassword(string email, string currentPw, string newPw)
+        {
+            var checkEmail = _context.Employees
+                .Where(e => e.Email.Equals(email)).SingleOrDefault();
+
+            if (checkEmail == null)
+            {
+                return "n";
+            }
+            else
+            {
+                var checkPw = _context.Users.
+                    Where(u => u.Id == checkEmail.Id).SingleOrDefault();
+                var result = Hashing.ValidatePassword(currentPw, checkPw.Password);
+
+                if (checkPw != null)
+                {
+                    if (result)
+                    {
+                        checkPw.Password = Hashing.HashPassword(newPw);
+                        _context.Entry(checkEmail).State = EntityState.Modified;
+
+                        var resultPassword = _context.SaveChanges();
+                        if (resultPassword > 0)
+                        {
+                            return "s";
+                        }
+                        return "f";
+                    }
+                }
+                else
+                {
+                    return "f";
+                }
+            }
+            return "f";
+        }
 
         // Forgot Password
+        public string ForgotPassword (string fullName, string email, string newPw)
+        {
+            var data = _context.Users
+                .Where(e => e.Employee.Email.Equals(email) && e.Employee.FullName.Equals(fullName)).SingleOrDefault();
+            if (data == null)
+            {
+                return "n";
+            }
+            else
+            {
+                data.Password = Hashing.HashPassword(newPw);
+                _context.Entry(data).State = EntityState.Modified;
+
+                var resultPassword = _context.SaveChanges();
+                if (resultPassword > 0)
+                {
+                    return "s";
+                }
+                return "f";
+            }
+        }
     }
 }
