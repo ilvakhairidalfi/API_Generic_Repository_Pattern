@@ -39,7 +39,7 @@ namespace API.Repository.Data
                     if (result)
                     {
                         var outRole = _context.Roles
-                        .Where(r => r.Id == checkPw.Id).SingleOrDefault();
+                        .Where(r => r.Id == checkPw.RoleId).SingleOrDefault();
 
                         resp.Id = checkEmail.Id;
                         resp.FullName = checkEmail.FullName;
