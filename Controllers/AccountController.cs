@@ -16,12 +16,14 @@ namespace API.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
+        public IConfiguration _configuration;
         private AccountRepositories _accountRepository;
         private MyContext _context;
 
-        public AccountController(AccountRepositories accountRepositories)
+        public AccountController(AccountRepositories accountRepositories, IConfiguration configuration)
         {
             _accountRepository = accountRepositories;
+            _configuration = configuration; 
         }
 
         //Login
@@ -33,11 +35,29 @@ namespace API.Controllers
                 var login = _accountRepository.Login(loginVM);
                 if (login.Id != 0)
                 {
-                    return Ok(new { StatusCode = 200, Message = "Login Success", Data = login });
+                    //create claims details based on the user information
+                    var claims = new[] {
+                        new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
+                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                        new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
+                        new Claim("Email", login.Email.ToString()),
+                        new Claim("role", login.Role.ToString()),
+                    };
+
+                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+                    var signIn = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+                    var token = new JwtSecurityToken(
+                        _configuration["Jwt:Issuer"],
+                        _configuration["Jwt:Audience"],
+                        claims,
+                        expires: DateTime.UtcNow.AddMinutes(10),
+                        signingCredentials: signIn);
+
+                    return Ok(new { StatusCode = 200, Message = "Login Success", Token = new JwtSecurityTokenHandler().WriteToken(token) });
                 }
                 else
                 {
-                    return NotFound();
+                    return Ok(new { StatusCode = 202, Message = "User Not Found"});
                 }
             }
             catch (Exception ex)

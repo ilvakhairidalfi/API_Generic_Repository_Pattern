@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Repository.Data
 {
-    public class DepartementRepositories : IRepository<Departement, int>
+    public class DepartementRepositories : IRepository<Departement>
     {
         // constractor dr my context
         private MyContext _context;
